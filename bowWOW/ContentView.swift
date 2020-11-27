@@ -11,6 +11,9 @@ struct ContentView: View {
     
     @State private var dogImage = UIImage()
     
+    // Track the people that we pull information about
+    @State private var people: [Person] = [] // empty array to start
+    
     var body: some View {
         NavigationView {
             VStack {
@@ -28,9 +31,60 @@ struct ContentView: View {
                 
                 
                 Spacer()
+                
+                List(people) { person in
+                    Text(person.name)
+                }
             }
             .navigationTitle("Bow WOW!")
         }
+        .onAppear() {
+            fetchNames()
+        }
+    }
+    
+    // Get a list of names
+    func fetchNames() {
+        
+        // 1. Prepare a URLRequest to send our encoded data as JSON
+        let url = URL(string: "https://api.sheety.co/b74e96bbbe6b4f59aa4d8f4fad0dd0fc/computerScience/sheet1")!
+        var request = URLRequest(url: url)
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpMethod = "GET"
+        
+        // 2. Run the request and process the response
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            
+            // handle the result here – attempt to unwrap optional data provided by task
+            guard let namesData = data else {
+                
+                // Show the error message
+                print("No data in response: \(error?.localizedDescription ?? "Unknown error")")
+                
+                return
+            }
+            
+            // It seems to have worked? Let's see what we have
+            print(String(data: namesData, encoding: .utf8)!)
+            
+            // Now decode from JSON into an array of Swift native data types
+            if let decodedPersonData = try? JSONDecoder().decode(People.self, from: namesData) {
+
+
+                print("People data decoded from JSON successfully")
+                
+                // Update the UI on the main thread
+                DispatchQueue.main.async {
+                    people = decodedPersonData.sheet1
+                }
+
+            } else {
+
+                print("Invalid response from server.")
+            }
+            
+        }.resume()
+        
     }
     
     
